@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# bbs-fetch
+set -euo pipefail
+umask 077
+
+: "${XDG_RUNTIME_DIR:?bbs-fetch requires XDG_RUNTIME_DIR}"
+runtime_dir="$XDG_RUNTIME_DIR/omarchy-bbs"
+cache_root=${XDG_CACHE_HOME:-$HOME/.cache}
+cache_dir="$cache_root/omarchy-bbs"
+install -d -m 700 "$runtime_dir" "$cache_dir"
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+list_cache_file="$cache_dir/list.json"
+list_cache_minutes=43200   # 30 days: the source list is published monthly
+max_response_bytes=8388608 # 8 MiB, well above the ~2.3 MiB zip
+version=$(jq -r '.version' "$script_dir/manifest.json")
+user_agent="Omarchy BBS Guide/$version (https://github.com/Paulie420/omarchy-bbs)"
+base_url="https://www.telnetbbsguide.com"
+work_dir=""
+
+cleanup() { [[ -z $work_dir ]] || rm -rf "$work_dir"; }
+trap cleanup EXIT
+
+current_list_url() {
+  printf '%s/bbslist/ibbs%s%s.zip\n' "$base_url" "$(date +%m)" "$(date +%y)"
+}
+
+discover_list_url() {
+  curl --fail --silent --show-error --connect-timeout 4 --max-time 12 \
+    --proto '=https' --user-agent "$user_agent" \
+    "$base_url/lists/download-list/" \
+    | grep -oE 'href="[^"]+\.zip"' | head -n1 | sed -E 's/^href="//; s/"$//'
+}
+
+download_zip() {
+  local url=$1 out=$2
+  case "$url" in http://*|https://*) ;; *) url="$base_url$url" ;; esac
+  setpriv --pdeathsig TERM curl --fail --silent --show-error \
+    --connect-timeout 6 --max-time 30 --retry 1 --retry-delay 0 \
+    --max-filesize "$max_response_bytes" --proto '=https' \
+    --user-agent "$user_agent" "$url" --output "$out"
+}
+
+fetch_and_normalize() {
+  work_dir=$(mktemp -d "$runtime_dir/fetch.XXXXXX")
+  local zip="$work_dir/list.zip"
+  if ! download_zip "$(current_list_url)" "$zip"; then
+    local fallback
+    fallback=$(discover_list_url) || return 1
+    [[ -n $fallback ]] || return 1
+    download_zip "$fallback" "$zip" || return 1
+  fi
+  (( $(stat -c '%s' -- "$zip") <= max_response_bytes )) || return 1
+  unzip -p -qq "$zip" bbslist.csv > "$work_dir/bbslist.csv" || return 1
+  python3 "$script_dir/bbs-normalize.py" < "$work_dir/bbslist.csv" \
+    > "$work_dir/list.json"
+  jq -e 'type == "array" and length > 0' "$work_dir/list.json" >/dev/null
+}
+
+publish_copy() {
+  local source=$1 target=$2 temporary
+  temporary=$(mktemp "${target%/*}/publish.XXXXXX")
+  cp "$source" "$temporary"
+  mv "$temporary" "$target"
+}
+
+refresh_list_cache() {
+  fetch_and_normalize || return 1
+  publish_copy "$work_dir/list.json" "$list_cache_file"
+}
+
+refresh_list_cache_in_background() {
+  (
+    exec 9>"$cache_dir/list.lock"
+    flock -n 9 || exit 0
+    refresh_list_cache
+  ) </dev/null >/dev/null 2>&1 &
+}
+
+valid_list_cache() {
+  [[ -s $list_cache_file ]] \
+    && (( $(stat -c '%s' -- "$list_cache_file") <= max_response_bytes )) \
+    && jq -e 'type == "array" and length > 0' "$list_cache_file" >/dev/null 2>&1
+}
+
+action=${1:-list}
+case "$action" in
+  list)
+    if valid_list_cache; then
+      cat "$list_cache_file"
+      if ! find "$list_cache_file" -mmin "-$list_cache_minutes" \
+        -print -quit | grep -q .; then
+        refresh_list_cache_in_background
+      fi
+      exit 0
+    fi
+    refresh_list_cache
+    cat "$list_cache_file"
+    ;;
+  refresh)
+    refresh_list_cache
+    cat "$list_cache_file"
+    ;;
+  *)
+    echo "Unknown action: $action" >&2
+    exit 2
+    ;;
+esac

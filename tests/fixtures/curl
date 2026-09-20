@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+url=""
+output=""
+prev=""
+for arg in "$@"; do
+  if [[ $prev == "--output" ]]; then output="$arg"; fi
+  case "$arg" in http://*|https://*) url="$arg" ;; esac
+  prev="$arg"
+done
+
+emit() { if [[ -n $output ]]; then cat > "$output"; else cat; fi; }
+
+case "$url" in
+  */lists/download-list/)
+    printf '<a href="/bbslist/ibbs-fallback.zip">Download</a>\n' | emit
+    ;;
+  */bbslist/ibbs-fallback.zip)
+    cat "$BBS_FETCH_TEST_FIXTURE_ZIP" | emit
+    ;;
+  */bbslist/ibbs*.zip)
+    if [[ ${BBS_FETCH_TEST_MONTHLY_404:-0} == 1 ]]; then
+      echo "curl: (22) The requested URL returned error: 404" >&2
+      exit 22
+    fi
+    cat "$BBS_FETCH_TEST_FIXTURE_ZIP" | emit
+    ;;
+  *)
+    echo "curl stub: unhandled URL $url" >&2
+    exit 1
+    ;;
+esac
