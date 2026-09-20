@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "paulie420.bbs",
+  "name": "BBS Guide",
+  "version": "0.1.0",
+  "author": "paulie420",
+  "license": "MIT",
+  "description": "Browse, search and connect to classic telnet/SSH Bulletin Board Systems from the Omarchy bar, with a curated Best/Great/Good directory and a built-in guide to BBS terminal clients.",
+  "homepage": "https://github.com/Paulie420/omarchy-bbs",
+  "repository": "https://github.com/Paulie420/omarchy-bbs",
+  "keywords": ["bbs", "telnet", "ssh", "retro", "terminal"],
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "BBS Guide",
+    "description": "Browse and connect to telnet/SSH BBSes",
+    "category": "Utilities",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
