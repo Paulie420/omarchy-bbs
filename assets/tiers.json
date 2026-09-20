@@ -1,5 +1,26 @@
 {
-  "best": [],
-  "great": [],
-  "good": []
+  "best": [
+    "20 For Beers BBS",
+    "Absinthe BBS",
+    "Bottomless Abyss BBS"
+  ],
+  "great": [
+    "Quantum Wormhole",
+    "Slackers BBS",
+    "Archaic Binary",
+    "Cave BBS",
+    "Another Droid BBS",
+    "Particles! BBS"
+  ],
+  "good": [
+    "Danger Bay BBS",
+    "Never Never Land BBS",
+    "Black Flag BBS",
+    "Boar's Head Tavern",
+    "Wrong Number ][ BBS",
+    "Wrong Number ][ BBS Retro 1993!!",
+    "Wrong Number ][ V2.0",
+    "Wrong Number ]I[ BBS",
+    "Wrong Number IV BBS"
+  ]
 }
