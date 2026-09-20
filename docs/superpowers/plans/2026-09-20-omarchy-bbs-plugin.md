@@ -820,12 +820,10 @@ if "$project_dir/bbs-connect" 'not-a-url' >/dev/null 2>&1; then
 fi
 
 # 2. syncterm missing -> exit code 3, no PATH entry for it.
-if PATH="/usr/bin:/bin" "$project_dir/bbs-connect" 'telnet://20forbeers.com:1337' \
-  >/dev/null 2>&1; then
-  echo "Missing syncterm was not reported" >&2
-  exit 1
-fi
+set +e
+PATH="/usr/bin:/bin" "$project_dir/bbs-connect" 'telnet://20forbeers.com:1337' >/dev/null 2>&1
 missing_status=$?
+set -e
 [[ $missing_status == 3 ]] || { echo "Expected exit 3, got $missing_status" >&2; exit 1; }
 
 # 3. syncterm present -> launches via omarchy-launch-terminal with the URL.
@@ -1085,7 +1083,11 @@ Panel {
     if (!root.selectedEntry) return
     var url = BbsModel.connectUrl(root.selectedEntry, protocol)
     if (!url) return
-    connectProcess.command = [Quickshell.env("HOME") + "/.config/omarchy/plugins/paulie420.bbs/bbs-connect", url]
+    // Reuses BbsService's own resolvedUrl-based pluginDir (matching
+    // akshar.radio-atlas's playerPath precedent) instead of a hardcoded
+    // install path, so this keeps working regardless of where the plugin
+    // is actually installed.
+    connectProcess.command = [service.pluginDir + "bbs-connect", url]
     connectProcess.expectedUrl = url
     connectProcess.running = true
   }
