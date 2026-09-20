@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Plugin id is `paulie420.bbs`; license MIT; homepage/repository both `https://github.com/Paulie420/omarchy-bbs`.
-- No Claude/Anthropic/AI mentions anywhere in code, docs, or commit messages (this repo is public and in scope for that rule).
+- No mention of any AI coding assistant anywhere in code, docs, or commit messages (this repo is public and in scope for that rule).
 - No voting/ranking backend of any kind. Tiers come only from the static `assets/tiers.json`, hand-edited by the author.
 - No BBS gets special-cased in code or UI, including `20forbeers.com` — it is tiered like any other entry via `assets/tiers.json`.
 - v1 ships an empty/placeholder `assets/tiers.json` (`{"best": [], "great": [], "good": []}`) — the real seed list is a follow-up content task, not part of this build.
