@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# bbs-connect
+set -euo pipefail
+
+url=${1:?Usage: bbs-connect <telnet://or ssh://host:port>}
+[[ $url =~ ^(telnet|ssh)://[A-Za-z0-9.-]+:[0-9]{1,5}$ ]] \
+  || { echo "Invalid connect URL: $url" >&2; exit 2; }
+
+if ! command -v syncterm >/dev/null 2>&1; then
+  echo "syncterm not installed" >&2
+  exit 3
+fi
+
+exec omarchy-launch-terminal syncterm "$url"
