@@ -819,9 +819,18 @@ if "$project_dir/bbs-connect" 'not-a-url' >/dev/null 2>&1; then
   exit 1
 fi
 
-# 2. syncterm missing -> exit code 3, no PATH entry for it.
+# 2. syncterm missing -> exit code 3. Uses an isolated, deliberately empty
+# PATH directory rather than trusting the real system PATH to lack syncterm
+# -- syncterm is this plugin's own recommended client and is commonly
+# installed on real Omarchy systems, so a real system PATH is not a
+# reliable way to simulate "not installed". bash itself is resolved to an
+# absolute path first (real_bash) and invoked directly, bypassing the
+# script's own "#!/usr/bin/env bash" shebang, which would otherwise fail
+# to resolve "bash" under the emptied PATH.
+mkdir -p "$test_root/empty-bin"
+real_bash=$(command -v bash)
 set +e
-PATH="/usr/bin:/bin" "$project_dir/bbs-connect" 'telnet://20forbeers.com:1337' >/dev/null 2>&1
+PATH="$test_root/empty-bin" "$real_bash" "$project_dir/bbs-connect" 'telnet://20forbeers.com:1337' >/dev/null 2>&1
 missing_status=$?
 set -e
 [[ $missing_status == 3 ]] || { echo "Expected exit 3, got $missing_status" >&2; exit 1; }
